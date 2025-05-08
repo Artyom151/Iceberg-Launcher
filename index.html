@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Iceberg Launcher</title>
+    <style>
+        @font-face {
+            font-family: 'Minecraft';
+            src: url('./fonts/minecraft.ttf') format('truetype');
+        }
+
+        :root {
+            --primary-color: #4CAF50;
+            --secondary-color: #2196F3;
+            --accent-color: #9C27B0;
+            --danger-color: #f44336;
+            --background-dark: rgba(0, 0, 0, 0.7);
+            --background-light: rgba(255, 255, 255, 0.1);
+            --transition-speed: 0.3s;
+            --iceberg-blue: #00b4d8;
+            --iceberg-gradient: linear-gradient(135deg, #00b4d8 0%, #0096c7 100%);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: url('./assets/background.jpg') center/cover no-repeat fixed;
+            font-family: 'Minecraft', sans-serif;
+            color: white;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: -1;
+        }
+
+        .titlebar {
+            -webkit-app-region: drag;
+            height: 32px;
+            background: var(--background-dark);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .titlebar-buttons {
+            -webkit-app-region: no-drag;
+        }
+
+        .titlebar-button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 32px);
+            position: relative;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: var(--background-dark);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform var(--transition-speed) ease;
+            height: calc(100vh - 32px);
+            overflow: hidden;
+        }
+
+        .sidebar-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .content {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: var(--background-dark);
+            backdrop-filter: blur(10px);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .content-page {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all var(--transition-speed) ease;
+            pointer-events: none;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .content-page.active {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: all;
+        }
+
+        .logo {
+            font-size: 48px;
+            margin-bottom: 40px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .button {
+            background: var(--primary-color);
+            border: none;
+            padding: 15px 30px;
+            margin: 5px 0;
+            font-family: 'Minecraft', sans-serif;
+            font-size: 24px;
+            color: white;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+            width: 100%;
+            text-align: center;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.2),
+                transparent
+            );
+            transition: 0.5s;
+        }
+
+        .button:hover::before {
+            left: 100%;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        #settings-button {
+            background: var(--secondary-color);
+        }
+
+        #mods-button {
+            background: var(--accent-color);
+        }
+
+        #add-profile-button {
+            margin-top: auto;
+            flex-shrink: 0;
+        }
+
+        .profiles-section {
+            margin-top: 20px;
+            background: var(--background-light);
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .profiles-list {
+            background: var(--background-dark);
+            border-radius: 5px;
+            padding: 10px;
+            flex: 1;
+            overflow-y: auto;
+            margin: 10px 0;
+            min-height: 100px;
+        }
+
+        .profiles-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .profiles-list::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+
+        .profiles-list::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+
+        .profiles-list::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary-color);
+        }
+
+        .profile-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: var(--background-light);
+            margin: 5px 0;
+            border-radius: 5px;
+            transition: all var(--transition-speed) ease;
+            cursor: pointer;
+        }
+
+        .profile-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(5px);
+        }
+
+        .profile-item.selected {
+            border: 2px solid var(--primary-color);
+            background: rgba(76, 175, 80, 0.1);
+        }
+
+        .profile-avatar {
+            width: 32px;
+            height: 32px;
+            margin-right: 10px;
+            border-radius: 4px;
+        }
+
+        .delete-profile-btn {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: #ff4444;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .social-links {
+            margin-top: 10px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            padding: 15px;
+            background: var(--background-light);
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+
+        .social-links img {
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .social-links img:hover {
+            transform: scale(1.2) rotate(5deg);
+        }
+
+        /* Стили для окон настроек и модов */
+        .settings-window,
+        .mods-window {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            background: var(--background-dark);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 1000;
+            min-width: 550px;
+            opacity: 0;
+            transition: all var(--transition-speed) ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .settings-window.visible,
+        .mods-window.visible {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+
+        .settings-form,
+        .mods-list {
+            margin: 20px 0;
+        }
+
+        .setting-item {
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .setting-item input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 5px 10px;
+            color: white;
+            font-family: 'Minecraft', sans-serif;
+            width: 200px;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .buttons button {
+            background: #4CAF50;
+            border: none;
+            padding: 10px 20px;
+            color: white;
+            cursor: pointer;
+            font-family: 'Minecraft', sans-serif;
+        }
+
+        .buttons button:last-child {
+            background: #f44336;
+        }
+
+        .mod-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+
+        .delete-mod-btn {
+            background: none;
+            border: none;
+            color: #ff4444;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .mods-controls {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .mods-controls button {
+            background: #4CAF50;
+            border: none;
+            padding: 10px 20px;
+            color: white;
+            cursor: pointer;
+            font-family: 'Minecraft', sans-serif;
+        }
+
+        .mods-controls button:last-child {
+            background: #f44336;
+        }
+
+        /* Стили для диалоговых окон */
+        .dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(8px);
+        }
+
+        .dialog {
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 15px;
+            padding: 30px;
+            min-width: 450px;
+            box-shadow: 0 0 30px rgba(0, 180, 216, 0.4);
+            border: 1px solid rgba(0, 180, 216, 0.3);
+            transform: translateY(-20px) scale(0.95);
+            opacity: 0;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .dialog.visible {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+
+        .dialog h2 {
+            margin: 0 0 20px 0;
+            color: white;
+            text-align: center;
+            font-size: 28px;
+            text-shadow: 0 0 10px rgba(0, 180, 216, 0.5);
+        }
+
+        .dialog-content {
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin: 15px 0;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: white;
+            font-size: 16px;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-family: 'Minecraft', sans-serif;
+            border-radius: 8px;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: var(--iceberg-blue);
+            box-shadow: 0 0 10px rgba(0, 180, 216, 0.3);
+        }
+
+        .input-group select option {
+            background: #1a1a1a;
+            color: white;
+        }
+
+        .version-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .version-button {
+            flex: 1;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: white;
+            font-family: 'Minecraft', sans-serif;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .version-button:hover {
+            background: rgba(0, 180, 216, 0.2);
+            border-color: var(--iceberg-blue);
+        }
+
+        .version-button.active {
+            background: var(--iceberg-gradient);
+            border-color: transparent;
+        }
+
+        .dialog-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .dialog-buttons button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Minecraft', sans-serif;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .dialog-buttons button:first-child {
+            background: var(--iceberg-gradient);
+            color: white;
+        }
+
+        .dialog-buttons button:last-child {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .dialog-buttons button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Стили для выбранного профиля */
+        .profile-info {
+            flex: 1;
+            margin-left: 10px;
+        }
+
+        .profile-name {
+            display: block;
+            font-size: 1.1em;
+        }
+
+        .profile-version {
+            display: block;
+            font-size: 0.8em;
+            color: #888;
+        }
+
+        .profile-controls {
+            display: flex;
+            gap: 5px;
+        }
+
+        .edit-profile-btn {
+            background: none;
+            border: none;
+            color: #2196F3;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .edit-profile-btn:hover {
+            color: #64B5F6;
+        }
+
+        /* Обновленные стили для прогресс-бара */
+        .progress-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--background-dark);
+            padding: 15px 20px;
+            z-index: 1000;
+            display: none;
+            backdrop-filter: blur(10px);
+            transform: translateY(100%);
+            transition: transform var(--transition-speed) ease;
+        }
+
+        .progress-container.visible {
+            transform: translateY(0);
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .progress-status {
+            color: #fff;
+            font-size: 14px;
+            flex: 1;
+            font-family: 'Minecraft', sans-serif;
+        }
+
+        .progress-details {
+            color: var(--primary-color);
+            font-size: 14px;
+            font-family: 'Minecraft', sans-serif;
+            margin-left: 15px;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 10px;
+            background: var(--background-light);
+            overflow: hidden;
+            border-radius: 5px;
+        }
+
+        .progress-bar {
+            width: 0;
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            transition: width 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.4),
+                transparent
+            );
+            animation: progress-shine 2s infinite;
+        }
+
+        @keyframes progress-shine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Обеспечиваем использование пользовательского шрифта везде */
+        * {
+            font-family: 'Minecraft', sans-serif;
+        }
+
+        /* Обновленные стили для диалога настроек */
+        .dialog-content .input-group:nth-child(3) {
+            display: none; /* Скрываем поле выбора версии в настройках */
+        }
+
+        /* Стили для выбора папки */
+        .folder-select {
+            display: flex;
+            gap: 10px;
+        }
+
+        .folder-select input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            color: white;
+            font-family: 'Minecraft', sans-serif;
+            cursor: not-allowed;
+        }
+
+        .folder-select button {
+            background: #2196F3;
+            border: none;
+            padding: 8px 16px;
+            color: white;
+            font-family: 'Minecraft', sans-serif;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .folder-select button:hover {
+            background: #1976D2;
+        }
+
+        /* Стили для выбора скина */
+        .skin-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .skin-preview {
+            width: 100%;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .skin-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .no-skin {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+        }
+
+        .skin-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .skin-buttons button {
+            flex: 1;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            font-family: 'Minecraft', sans-serif;
+            transition: background-color 0.2s;
+        }
+
+        .skin-buttons button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .skin-buttons button:first-child {
+            background: rgba(33, 150, 243, 0.2);
+        }
+
+        .skin-buttons button:first-child:hover {
+            background: rgba(33, 150, 243, 0.3);
+        }
+
+        /* Стили для кнопок обслуживания */
+        .maintenance-buttons {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .maintenance-buttons button {
+            padding: 10px;
+            background: rgba(255, 152, 0, 0.2);
+            border: 1px solid rgba(255, 152, 0, 0.3);
+            color: white;
+            cursor: pointer;
+            font-family: 'Minecraft', sans-serif;
+            transition: background-color 0.2s;
+        }
+
+        .maintenance-buttons button:hover {
+            background: rgba(255, 152, 0, 0.3);
+        }
+        
+        .danger-button {
+            background: rgba(244, 67, 54, 0.2) !important;
+            border: 1px solid rgba(244, 67, 54, 0.3) !important;
+        }
+        
+        .danger-button:hover {
+            background: rgba(244, 67, 54, 0.3) !important;
+        }
+
+        /* Стили для кнопок тем */
+        .themes-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        .theme-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .theme-button:hover {
+            transform: scale(1.1);
+        }
+
+        .theme-button.active {
+            border-color: white;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .theme-winter {
+            background-image: url('./assets/background.jpg');
+        }
+
+        .theme-blossom {
+            background-image: url('./assets/blossom.png');
+        }
+
+        .theme-swap {
+            background-image: url('./assets/swamp.png');
+        }
+
+        /* Добавляем стили для разных тем */
+        body.theme-winter {
+            --primary-color: #4CAF50;
+            --secondary-color: #2196F3;
+            --accent-color: #9C27B0;
+        }
+
+        body.theme-blossom {
+            --primary-color: #FF69B4;
+            --secondary-color: #FF1493;
+            --accent-color: #C71585;
+        }
+
+        body.theme-swap {
+            --primary-color: #2E7D32;
+            --secondary-color: #1B5E20;
+            --accent-color: #388E3C;
+        }
+
+        /* Стили для новых элементов настроек */
+        .settings-section {
+            background: var(--background-light);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .settings-section h3 {
+            margin: 0 0 15px 0;
+            color: var(--primary-color);
+            font-size: 18px;
+        }
+
+        .themes-select {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .theme-option {
+            background: none;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .theme-option:hover {
+            background: var(--background-light);
+        }
+
+        .theme-option.active {
+            border-color: var(--primary-color);
+        }
+
+        .theme-preview {
+            width: 80px;
+            height: 45px;
+            border-radius: 4px;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .theme-preview.winter {
+            background-image: url('./assets/background.jpg');
+        }
+
+        .theme-preview.blossom {
+            background-image: url('./assets/blossom.png');
+        }
+
+        .theme-preview.swap {
+            background-image: url('./assets/swamp.png');
+        }
+
+        .theme-option span {
+            color: white;
+            font-size: 14px;
+        }
+
+        /* Стили для переключателей */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--background-light);
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        /* Стили для ползунка прозрачности */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: var(--background-light);
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        .range-value {
+            margin-left: 10px;
+            color: white;
+        }
+
+        /* Стили для настроек памяти */
+        .memory-settings {
+            display: flex;
+            gap: 20px;
+        }
+
+        .memory-input {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .memory-input input {
+            width: 80px;
+        }
+
+        /* Стили для кнопок обслуживания */
+        .maintenance-button {
+            width: 100%;
+            padding: 12px;
+            margin: 5px 0;
+            background: var(--background-light);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .maintenance-button:hover {
+            background: var(--background-dark);
+        }
+
+        .maintenance-button.danger {
+            border-color: var(--danger-color);
+        }
+
+        .maintenance-button.danger:hover {
+            background: rgba(244, 67, 54, 0.2);
+        }
+
+        /* Обновленные стили для кнопок диалога */
+        .dialog-buttons {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .save-button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .save-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .close-button {
+            background: var(--background-light);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .close-button:hover {
+            background: var(--background-dark);
+        }
+
+        /* Стили для настроек */
+        .settings-content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .settings-section {
+            background: var(--background-light);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .settings-section h3 {
+            color: var(--primary-color);
+            margin: 0 0 20px 0;
+            font-size: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: white;
+        }
+
+        /* Стили для range input */
+        .range-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 8px;
+            border-radius: 4px;
+            background: var(--background-light);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .range-value {
+            min-width: 50px;
+            text-align: right;
+            color: white;
+        }
+
+        /* Стили для переключателей */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--background-light);
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        /* Стили для кнопок обслуживания */
+        .maintenance-button {
+            width: 100%;
+            padding: 12px;
+            margin: 5px 0;
+            background: var(--background-light);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .maintenance-button:hover {
+            background: var(--background-dark);
+        }
+
+        .maintenance-button.danger {
+            border-color: var(--danger-color);
+        }
+
+        .maintenance-button.danger:hover {
+            background: rgba(244, 67, 54, 0.2);
+        }
+
+        /* Стили для полей ввода */
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--background-dark);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 4px;
+        }
+
+        select {
+            cursor: pointer;
+        }
+
+        /* Стили для настроек памяти */
+        .memory-settings {
+            display: flex;
+            gap: 20px;
+        }
+
+        .memory-input {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .memory-input label {
+            margin: 0;
+            min-width: 40px;
+        }
+
+        .memory-input input {
+            flex: 1;
+        }
+
+        /* Стили для выбора папки */
+        .folder-select {
+            display: flex;
+            gap: 10px;
+        }
+
+        .folder-select input {
+            flex: 1;
+        }
+
+        .folder-select button {
+            padding: 8px 16px;
+            background: var(--primary-color);
+            border: none;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .folder-select button:hover {
+            background: var(--secondary-color);
+        }
+
+        /* Добавляем стили для заголовка настроек */
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .settings-header h2 {
+            margin: 0;
+            color: var(--primary-color);
+            font-size: 24px;
+        }
+
+        .close-settings-button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 5px 10px;
+            transition: all 0.3s ease;
+        }
+
+        .close-settings-button:hover {
+            color: var(--primary-color);
+            transform: scale(1.1);
+        }
+
+        /* Обновляем стили для вкладки настроек */
+        #settings-tab {
+            background: var(--background-dark);
+            backdrop-filter: blur(10px);
+        }
+
+        .settings-content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Удаляем стили для ползунка прозрачности */
+        .range-container {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="titlebar">
+        <div class="titlebar-title">Iceberg Launcher</div>
+        <div class="titlebar-buttons">
+            <button class="titlebar-button" id="minimize-button">_</button>
+            <button class="titlebar-button" id="maximize-button">□</button>
+            <button class="titlebar-button" id="close-button">×</button>
+        </div>
+    </div>
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="themes-container">
+                <button class="theme-button theme-winter" data-theme="winter" onclick="changeTheme('winter')"></button>
+                <button class="theme-button theme-blossom" data-theme="blossom" onclick="changeTheme('blossom')"></button>
+                <button class="theme-button theme-swap" data-theme="swap" onclick="changeTheme('swap')"></button>
+            </div>
+            <div class="sidebar-buttons">
+                <button class="button" id="play-button">ИГРАТЬ</button>
+                <button class="button" id="settings-button">НАСТРОЙКИ</button>
+            </div>
+            
+            <div class="profiles-section">
+                <h3>Профили</h3>
+                <div id="profiles-list" class="profiles-list">
+                    <!-- Профили будут добавлены через JavaScript -->
+                </div>
+                <button class="button" id="add-profile-button">Добавить профиль</button>
+            </div>
+
+            <div class="social-links">
+                <img src="assets/telegram.png" alt="Telegram">
+            </div>
+        </div>
+        <div class="content">
+            <!-- Вкладки контента -->
+            <div id="play-tab" class="content-page active">
+                <div class="play-content">
+                </div>
+            </div>
+            
+            <div id="settings-tab" class="content-page">
+                <div class="settings-content">
+                    <div class="settings-header">
+                        <h2>Настройки</h2>
+                        <button class="close-settings-button" onclick="closeSettings()">×</button>
+                    </div>
+                    <!-- Настройки запуска -->
+                    <div class="settings-section">
+                        <h3>Настройки запуска</h3>
+                        <div class="input-group">
+                            <label>Автозапуск последнего профиля:</label>
+                            <label class="switch">
+                                <input type="checkbox" id="auto-launch">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="input-group">
+                            <label>Сворачивать лаунчер при запуске игры:</label>
+                            <label class="switch">
+                                <input type="checkbox" id="minimize-on-launch">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="input-group">
+                            <label>Закрывать лаунчер при запуске игры:</label>
+                            <label class="switch">
+                                <input type="checkbox" id="close-on-launch">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Настройки внешнего вида -->
+                    <div class="settings-section">
+                        <h3>Внешний вид</h3>
+                        <div class="input-group">
+                            <label>Прозрачность интерфейса:</label>
+                            <div class="range-container">
+                                <input type="range" id="ui-opacity" min="0" max="100" value="70">
+                                <span class="range-value">70%</span>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Размер шрифта:</label>
+                            <select id="font-size">
+                                <option value="small">Маленький</option>
+                                <option value="medium" selected>Средний</option>
+                                <option value="large">Большой</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Настройки Minecraft -->
+                    <div class="settings-section">
+                        <h3>Настройки Minecraft</h3>
+                        <div class="input-group">
+                            <label>Память (RAM):</label>
+                            <div class="memory-settings">
+                                <div class="memory-input">
+                                    <label>Мин:</label>
+                                    <input type="text" id="min-memory" value="2G">
+                                </div>
+                                <div class="memory-input">
+                                    <label>Макс:</label>
+                                    <input type="text" id="max-memory" value="4G">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Директория игры:</label>
+                            <div class="folder-select">
+                                <input type="text" id="game-dir" readonly>
+                                <button onclick="selectGameDir()">Выбрать</button>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Путь к Java:</label>
+                            <div class="folder-select">
+                                <input type="text" id="java-path" readonly>
+                                <button onclick="selectJavaPath()">Выбрать</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Обслуживание -->
+                    <div class="settings-section">
+                        <h3>Обслуживание</h3>
+                        <div class="maintenance-buttons">
+                            <button onclick="clearCache()" class="maintenance-button">
+                                <i class="fas fa-broom"></i>
+                                Очистить кэш лаунчера
+                            </button>
+                            <button onclick="clearTemp()" class="maintenance-button">
+                                <i class="fas fa-trash"></i>
+                                Очистить временные файлы
+                            </button>
+                            <button onclick="resetMinecraft()" class="maintenance-button danger">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Полный сброс Minecraft
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальные окна -->
+    <div id="settings-window" class="settings-window">
+        <h2>Настройки лаунчера</h2>
+        <div class="dialog-content">
+            <!-- Настройки внешнего вида -->
+            <div class="settings-section">
+                <h3>Внешний вид</h3>
+                <div class="input-group">
+                    <label>Тема оформления:</label>
+                    <div class="themes-select">
+                        <button class="theme-option" data-theme="winter">
+                            <div class="theme-preview winter"></div>
+                            <span>Winter</span>
+                        </button>
+                        <button class="theme-option" data-theme="blossom">
+                            <div class="theme-preview blossom"></div>
+                            <span>Blossom</span>
+                        </button>
+                        <button class="theme-option" data-theme="swap">
+                            <div class="theme-preview swap"></div>
+                            <span>Swamp</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Прозрачность интерфейса:</label>
+                    <input type="range" id="ui-opacity" min="0" max="100" value="70">
+                    <span class="range-value">70%</span>
+                </div>
+                <div class="input-group">
+                    <label>Размер шрифта:</label>
+                    <select id="font-size">
+                        <option value="small">Маленький</option>
+                        <option value="medium" selected>Средний</option>
+                        <option value="large">Большой</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Настройки запуска -->
+            <div class="settings-section">
+                <h3>Настройки запуска</h3>
+                <div class="input-group">
+                    <label>Автозапуск последнего профиля:</label>
+                    <label class="switch">
+                        <input type="checkbox" id="auto-launch">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="input-group">
+                    <label>Сворачивать лаунчер при запуске игры:</label>
+                    <label class="switch">
+                        <input type="checkbox" id="minimize-on-launch">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="input-group">
+                    <label>Закрывать лаунчер при запуске игры:</label>
+                    <label class="switch">
+                        <input type="checkbox" id="close-on-launch">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Настройки Minecraft -->
+            <div class="settings-section">
+                <h3>Настройки Minecraft</h3>
+                <div class="input-group">
+                    <label>Память (RAM):</label>
+                    <div class="memory-settings">
+                        <div class="memory-input">
+                            <label>Мин:</label>
+                            <input type="text" id="min-memory" value="2G">
+                        </div>
+                        <div class="memory-input">
+                            <label>Макс:</label>
+                            <input type="text" id="max-memory" value="4G">
+                        </div>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Директория игры:</label>
+                    <div class="folder-select">
+                        <input type="text" id="game-dir" readonly>
+                        <button onclick="selectGameDir()">Выбрать</button>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Путь к Java:</label>
+                    <div class="folder-select">
+                        <input type="text" id="java-path" readonly>
+                        <button onclick="selectJavaPath()">Выбрать</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Обслуживание -->
+            <div class="settings-section">
+                <h3>Обслуживание</h3>
+                <div class="maintenance-buttons">
+                    <button onclick="clearCache()" class="maintenance-button">
+                        <i class="fas fa-broom"></i>
+                        Очистить кэш лаунчера
+                    </button>
+                    <button onclick="clearTemp()" class="maintenance-button">
+                        <i class="fas fa-trash"></i>
+                        Очистить временные файлы
+                    </button>
+                    <button onclick="resetMinecraft()" class="maintenance-button danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Полный сброс Minecraft
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="dialog-buttons">
+            <button onclick="saveSettings()" class="save-button">Сохранить</button>
+            <button class="close-button">Отмена</button>
+        </div>
+    </div>
+
+    <!-- Прогресс-бар -->
+    <div class="progress-container" id="progress-container">
+        <div class="progress-info">
+            <span class="progress-status">Подготовка к установке...</span>
+            <span class="progress-details">0%</span>
+        </div>
+        <div class="progress-bar-container">
+            <div class="progress-bar"></div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html> 
