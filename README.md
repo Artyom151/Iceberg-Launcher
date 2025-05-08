@@ -1,4 +1,5 @@
-https://dimentiy.site/images/screenshot.jpg
+![image](https://github.com/user-attachments/assets/a3264197-cbce-4bd1-b218-aab2e4a080c8)
+
 Всем привет! Это мой первый лаунчер майнкрафт на **Node JS**!
 
 Чтобы установить и запустить надо скачать **Node JS** и **Java** и выполнить эти команды:
