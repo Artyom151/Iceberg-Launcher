@@ -4,11 +4,20 @@
 
 Чтобы установить и запустить надо скачать **Node JS** и **Java** и выполнить эти команды:
 
-1.
+1. Либо скачать через ссылку архив: https://dimentiy.site/files/iceberg-universal-0.0.2.zip  или же 
+```bash
+git clone https://github.com/Artyom151/Iceberg-Launcher
+```
+
+2. После открываем консоль в папке, где распаковали архив или же
+```bash
+cd Iceberg-Launcher
+```
+3.
 ```bash
 npm install
 ```
-2.
+4.
 ```bash
 npm start
 ```
